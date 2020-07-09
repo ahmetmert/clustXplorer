@@ -71,9 +71,11 @@ tab_perm = perm_tab(allClusters, principalComponents)
 # Put the tabs in the current document for display
 
 #curdoc().add_root(tab_perm)
-tabs = Tabs(tabs=[tab_perm])
+
 #output_file("main.html")
 #show(tabs)
+
+tabs = Tabs(tabs=[tab_perm], name="tabs")
 curdoc().add_root(tabs)
 
 # %%

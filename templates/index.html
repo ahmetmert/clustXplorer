@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <style>
+    .holder {   
+    width: auto;
+    display: inline-block;    
+    }
+
+    .holder img {
+    width: 40%; /* Will shrink image to 30% of its original width */
+    height: auto;    
+    }​
+    </style>
+  
+    <meta charset="utf-8">
+    <div class="holder">
+        <img src="./clustXplorer/static/clustXplorer_logo_v1.png" alt="clustXplorer logo" />
+    </div> 
+  </head>
+  <body>
+ 
+    {% extends base %}
+        
+        {% block contents %}
+        <div>
+            {{ embed(roots.tabs) }}
+        </div>
+        {% endblock %}
+  </body>
+</html>
+
