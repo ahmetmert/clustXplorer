@@ -15,28 +15,14 @@ from bokeh.models import Band, ColumnDataSource
 from bokeh.layouts import column, row, WidgetBox
 from bokeh.palettes import Category20_16
 from bokeh import plotting
+from sklearn.decomposition import PCA
+from sklearn.preprocessing import StandardScaler
 
 from .cluster import Cluster
 
 # Make plot with histogram and return tab
-def perm_tab(allClusters):
-    #global source_data
-    #global dataS
-    #global segmentSource
-    #global locked
-    #locked = 0
-    
-    #mean_sd = pd.read_excel('Data/mean-sd.xlsx')
-    #xAxis = mean_sd['x']
-    #mean = mean_sd['mean']
-    #std = mean_sd['std']
+def perm_tab(allClusters, principalComponents):
 
-    #perm_gray_source = ColumnDataSource(data=dict(
-    #    x = xAxis ,
-    #    lower = mean - (2 * std),
-    #    upper = mean + (2 * std),
-    #))	
-	
     TOOLTIPS = """
         <div>
          <!--   <div>
@@ -73,17 +59,15 @@ def perm_tab(allClusters):
     #source_data = dict(x = [-1, 300,200,100],y = [-1, 6, 8, 4], color = ["#1f77b4", "#1f77b4","#1f77b4","#1f77b4"] )
 
     source_data = PermPlotData(allClusters)
+    
+    
     dataS = ColumnDataSource(source_data.data)
     segmentSource = ColumnDataSource(source_data.links)
     # color= 'olive'
     sr = perm_plot.segment(x0='x0', y0='y0', x1='x1', y1='y1', color= "#1f77b4", alpha=0.6, source=segmentSource, line_width=3)
     cr = perm_plot.circle(x='x',y = 'y',color = 'color', line_width = 'linewidth', alpha = 'visible', source = dataS, size='size', line_color = 'black')
-    
-    def circle_click_handle(attr, old, new):
-        if(len(new) != 0):
-            circle_click_behavior(new, source_data, dataS, segmentSource)
-    
-    dataS.selected.on_change('indices', circle_click_handle)
+
+
     cr.nonselection_glyph = None
     sr.nonselection_glyph = None
     
@@ -105,12 +89,59 @@ def perm_tab(allClusters):
     #perm_plot.add_layout(band)
     #calculate_shade(cts_data)
 
-    pca_plot = figure(plot_width=400, plot_height=400 ,x_range=(0,700), y_range=(0, 14))
+    ## pca
+    pca_plot = plotting.figure(plot_width=400, plot_height=400)
+    pca_x = principalComponents[:,0]
+    pca_y = principalComponents[:,1]
+    color = ["black"] * len(pca_x)
+    pca_data = ColumnDataSource(data=dict(x=pca_x, y=pca_y, color=color))
+    pca_square_data = ColumnDataSource(data=source_data.pca_data)
+
+    def assign_random_colors():
+        for i in range(0, source_data.n):
+            random_number = random.randint(0, 16777215)
+            hex_number = str(hex(random_number))
+            hex_number ='#'+ hex_number[2:]
+            source_data.data['color'][i] = hex_number
+            dataS.data = source_data.data
+            source_data.updatePCAdata()
+            pca_square_data.data = source_data.pca_data
+
+    assign_random_colors()
+
+    def circle_click_handle(attr, old, new):
+        if(len(new) != 0):
+            circle_click_behavior(new, source_data, dataS, segmentSource)
+            source_data.updatePCAdata()
+            pca_square_data.data = source_data.pca_data
+
+            #pca_visible = [(visible[i] and (not toggled[i])) for i in range(0, len(visible))]
+
+
+    
+    dataS.selected.on_change('indices', circle_click_handle)
+
+
+    pca_plot.xaxis.visible = False
+    pca_plot.xgrid.visible = False
+    
+    pca_plot.yaxis.visible = False
+    pca_plot.ygrid.visible = False
+
+    pca_circle = pca_plot.circle('x','y',color = 'color', source = pca_data, size = 9, line_width = 1, line_color = 'black')
+
+    pca_square = pca_plot.square('x','y',color = 'color', alpha = 'visible', source = pca_square_data, size = 20, line_width = 3.25,
+     line_color = 'black')
 
     # Put controls in a single element
-    b1 = Button(label="Foo")
+    b1 = Button(label="Change Colors")
     s1 = Select(title="Option:", value="foo", options=["foo", "bar", "baz", "quux"])
     controls = WidgetBox(b1,s1)
+    
+    b1.on_click(assign_random_colors)
+
+
+    
     # Create a row layout
     layout = row(controls, perm_plot, pca_plot)# , )
     #layout = row(p, p)
@@ -132,7 +163,7 @@ def circle_click_behavior(new, source_data, dataS, segmentSource):
     hex_number = str(hex(random_number))
     hex_number ='#'+ hex_number[2:]
     
-    source_data.data['color'][selection] = hex_number
+    #source_data.data['color'][selection] = hex_number
     source_data.updateNode(selection)
     
     dataS.data = source_data.data
@@ -175,6 +206,8 @@ class PermPlotData(object):
         rightIndex = toArrayFormatChildren(allClusters, "RightChild")
         splitGain = toArrayFormat(allClusters, "SplitGain")
         normalizedSplitGain = toArrayFormat(allClusters, "NormalizedSplitGain")
+        component1Mean = toArrayFormat(allClusters, "Component1Mean")
+        component2Mean = toArrayFormat(allClusters, "Component2Mean")
         n = len(clusterSize)
         
         color = ["#1f77b4"] * n
@@ -198,6 +231,8 @@ class PermPlotData(object):
         right = rightIndex, \
         splitgain = splitGain, \
         normgain = normalizedSplitGain, \
+        component1Mean = component1Mean, \
+        component2Mean = component2Mean, \
         color = color, \
         visible = visible, \
         toggled = toggled, \
@@ -206,6 +241,7 @@ class PermPlotData(object):
         )
         self.updateCircles()
         self.updateLinks()
+        self.updatePCAdata()
         
     def updateCircles(self):
         for i in range(0, self.n):
@@ -284,4 +320,15 @@ class PermPlotData(object):
         if(right >= 0 and self.data['visible'][right] == 1):
             self.data['visible'][right] = 0
             self.untoggleNode(right)
+
+    def updatePCAdata(self):
+        visible = self.data['visible']
+        toggled = self.data['toggled']
+        pca_sqr_x = self.data['component1Mean']
+        pca_sqr_y = self.data['component2Mean']
+        pca_visible = []
+        for i in range(0, len(visible)):
+            pca_visible.append(visible[i] and (not toggled[i]))
+        self.pca_data = dict(x=pca_sqr_x, y=pca_sqr_y, \
+            color=self.data['color'], visible = pca_visible)
     

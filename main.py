@@ -38,6 +38,7 @@ clust = Clustering(X)
 clust.initiate_clustering()
 
 allClusters = clust.allClusters
+principalComponents = clust.principalComponents
 
 clusters = getAllClusterSubset(allClusters, 20)
 
@@ -55,7 +56,7 @@ for i in range(0, len(clusters)):
 
 
 # Create each of the tabs
-tab_perm = perm_tab(allClusters)
+tab_perm = perm_tab(allClusters, principalComponents)
 #tab2 = density_tab(flights)
 #tab3 = table_tab(flights)
 #tab4 = map_tab(map_data, states)

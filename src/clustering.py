@@ -5,6 +5,9 @@ from scipy.cluster.hierarchy import linkage, fcluster
 from .computeClusterTightness import *
 from .cluster import *
 
+from sklearn.decomposition import PCA
+from sklearn.preprocessing import StandardScaler
+
 import numpy as np
 
 class Clustering(object):
@@ -19,7 +22,10 @@ class Clustering(object):
         self.li = linkage(self.D, method='ward')
     def calculate_random_tightness(self):
         nRows = D.shape[0]
-        
+    def calculate_principal_components(self):
+        Dnorm = StandardScaler().fit_transform(self.D)
+        pca = PCA(n_components=2)
+        self.principalComponents = pca.fit_transform(Dnorm)
     def initiate_clustering(self):
         #dm = pdist(self.data, nanEucFun)
         #li = linkage(dm, method='ward')
@@ -34,7 +40,9 @@ class Clustering(object):
         root.SampleIndices = clustering == 1
         root.ClusterTightness = computeClusterTightness(self.D, root.SampleIndices)
         root.ClusterSize = sum(root.SampleIndices)
-        
+
+        self.calculate_principal_components()
+        principalComponents = self.principalComponents
         allClusters = []
         allClusters.append(root)
         allClusterSize = 1
@@ -68,6 +76,7 @@ class Clustering(object):
             allClusterSize = allClusterSize + 2
             #print(i)
         
+       
         leftChildren = np.zeros(len(allClusters), dtype=int)
         rightChildren = np.zeros(len(allClusters), dtype=int)
         
@@ -90,10 +99,10 @@ class Clustering(object):
             allClusters[iCluster].RightChild = rightChildren[iCluster]
             allClusters[iCluster].ClusterWeight = \
                 100 * allClusters[iCluster].ClusterSize / root.ClusterSize
-            #allClusters[iCluster].Component1Mean = \
-            #    np.mean(principalComponents[allClusters[iCluster].SampleIndices, 0])
-            #allClusters[iCluster].Component2Mean = \
-            #    np.mean(principalComponents[allClusters[iCluster].SampleIndices, 1])
+            allClusters[iCluster].Component1Mean = \
+                np.mean(principalComponents[allClusters[iCluster].SampleIndices, 0])
+            allClusters[iCluster].Component2Mean = \
+                np.mean(principalComponents[allClusters[iCluster].SampleIndices, 1])
             # allClusters[iCluster].ClusterTightness = \
             #     allClusters[iCluster].ClusterTightness * \
             #     allClusters[iCluster].ClusterSize / root.ClusterSize
