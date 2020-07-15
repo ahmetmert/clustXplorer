@@ -309,6 +309,7 @@ class PermPlotData(object):
             self.data['visible'][left] = 1
         if(right >= 0):
             self.data['visible'][right] = 1
+        self.updatePCAdata()
     
     def untoggleNode(self, index):
         self.data['toggled'][index] = 0
@@ -320,6 +321,7 @@ class PermPlotData(object):
         if(right >= 0 and self.data['visible'][right] == 1):
             self.data['visible'][right] = 0
             self.untoggleNode(right)
+        self.updatePCAdata()
 
     def updatePCAdata(self):
         visible = self.data['visible']
