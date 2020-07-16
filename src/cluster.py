@@ -14,6 +14,7 @@ class Cluster():
         self.NormalizedClusterTightness = "N/A"
         self.Component1Mean = None
         self.Component2Mean = None
+        
     def __str__(self):
         return "ClusterIndex=" + str(self.ClusterIndex) + " - " \
         "ParentIndex=" + str(self.ParentIndex) + " - " \

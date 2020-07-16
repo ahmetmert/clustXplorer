@@ -116,6 +116,7 @@ def perm_tab(allClusters, principalComponents):
 
     dataS.selected.on_change('indices', circle_click_handle)
 
+
     pca_plot.xaxis.visible = False
     pca_plot.xgrid.visible = False
     

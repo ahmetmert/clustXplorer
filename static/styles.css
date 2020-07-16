@@ -1,0 +1,11 @@
+<style>
+.holder {   
+width: auto;
+display: inline-block;    
+}
+
+.holder img {
+width: 35%; /* Will shrink image to 30% of its original width */
+height: auto;    
+}​
+</style>
